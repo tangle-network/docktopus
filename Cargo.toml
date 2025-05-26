@@ -51,7 +51,7 @@ futures-util = { version = "0.3", optional = true }
 ipnet = { version = "2", optional = true }
 tar = { version = "0.4", optional = true }
 tempfile = { version = "3", optional = true }
-tokio = { version = "1.0", features = ["full"], optional = true }
+tokio = { version = "1.45", features = ["full"], optional = true }
 uuid = { version = "1.16", optional = true, features = ["v4"] }
 reqwest = { version = "0.12", features = ["json"], optional = true }
 sysinfo = { version = "0.35", optional = true }
