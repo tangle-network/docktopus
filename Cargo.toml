@@ -46,7 +46,7 @@ thiserror = "2.0"
 log = "0.4"
 
 # Optional dependencies (only with deploy feature)
-bollard = { version = "0.18", optional = true }
+bollard = { version = "0.19", optional = true }
 futures-util = { version = "0.3", optional = true }
 ipnet = { version = "2", optional = true }
 tar = { version = "0.4", optional = true }
