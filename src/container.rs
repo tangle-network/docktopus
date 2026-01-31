@@ -542,6 +542,10 @@ impl Container {
     /// container.start(true).await?;
     /// # Ok(()) }
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Docker daemon fails to create the container.
     #[tracing::instrument(skip_all)]
     pub async fn create(&mut self) -> Result<(), bollard::errors::Error> {
         log::debug!("Creating container");
@@ -802,6 +806,15 @@ impl Container {
     /// container.remove(None).await?;
     /// # Ok(()) }
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Docker daemon fails to start the container.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the container ID is not set after creation. This should not happen
+    /// under normal circumstances.
     #[tracing::instrument(skip(self))]
     pub async fn start(&mut self, wait_for_exit: bool) -> Result<(), bollard::errors::Error> {
         if self.id.is_none() {
@@ -906,6 +919,10 @@ impl Container {
     /// container.stop().await?;
     /// # Ok(()) }
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Docker daemon fails to stop the container.
     #[tracing::instrument(skip_all)]
     pub async fn stop(&mut self) -> Result<(), bollard::errors::Error> {
         let Some(id) = &self.id else {
@@ -951,6 +968,10 @@ impl Container {
     /// container.remove(Some(remove_container_options)).await?;
     /// # Ok(()) }
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Docker daemon fails to remove the container.
     #[tracing::instrument(skip(self))]
     pub async fn remove(
         mut self,
@@ -989,6 +1010,10 @@ impl Container {
     /// container.wait().await?;
     /// # Ok(()) }
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Docker daemon fails while waiting for the container.
     #[tracing::instrument(skip_all)]
     pub async fn wait(&self) -> Result<(), bollard::errors::Error> {
         let Some(id) = &self.id else {

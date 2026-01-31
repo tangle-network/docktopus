@@ -127,7 +127,7 @@ fn parse_command(config: &mut DockerfileConfig, line: &str) -> Result<(), Docker
             };
 
             if sources_and_dest.len() >= 2 {
-                let dest = sources_and_dest.last().unwrap().to_string();
+                let dest = sources_and_dest.last().unwrap().clone();
                 let sources = sources_and_dest[..sources_and_dest.len() - 1].to_vec();
                 config.commands.push(DockerCommand::Add {
                     sources,

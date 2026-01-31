@@ -59,7 +59,7 @@ pub fn substitute_env_vars(content: &str, env_vars: &HashMap<String, String>) ->
             let default_value = caps.get(2).unwrap().as_str();
             match env_vars.get(var_name) {
                 Some(value) if value.is_empty() => default_value.to_string(),
-                Some(value) => value.to_string(),
+                Some(value) => value.clone(),
                 None => default_value.to_string(),
             }
         })

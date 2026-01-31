@@ -62,7 +62,7 @@ impl<'de> Deserialize<'de> for Volume {
                                 read_only: false,
                             })
                         } else {
-                            Ok(Volume::Named(s.to_string()))
+                            Ok(Volume::Named(s.clone()))
                         }
                     }
                     3 if parts[2] == "ro" => {
@@ -73,10 +73,10 @@ impl<'de> Deserialize<'de> for Volume {
                                 read_only: true,
                             })
                         } else {
-                            Ok(Volume::Named(s.to_string()))
+                            Ok(Volume::Named(s.clone()))
                         }
                     }
-                    _ => Ok(Volume::Named(s.to_string())),
+                    _ => Ok(Volume::Named(s.clone())),
                 }
             }
             VolumeInput::Long {
