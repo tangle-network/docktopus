@@ -1,8 +1,12 @@
 use crate::config::docker_file::DockerfileConfig;
 use crate::error::DockerError;
-use bollard::container::{Config, CreateContainerOptions, StartContainerOptions};
-use bollard::image::BuildImageOptions;
+use bollard::body_full;
+use bollard::models::ContainerCreateBody;
+use bollard::query_parameters::{
+    BuildImageOptionsBuilder, CreateContainerOptions, StartContainerOptions,
+};
 use bollard::service::HostConfig;
+use bytes::Bytes;
 use futures_util::StreamExt;
 
 use super::DockerBuilder;
@@ -96,16 +100,14 @@ impl DockerBuilder {
         let context = tokio::fs::read(&tar_path).await?;
 
         // Build the image
-        let build_opts = BuildImageOptions {
-            dockerfile: "Dockerfile",
-            t: tag,
-            q: false,
-            ..Default::default()
-        };
+        let build_opts = BuildImageOptionsBuilder::default()
+            .dockerfile("Dockerfile")
+            .t(tag)
+            .q(false)
+            .build();
 
-        let mut build_stream = self
-            .client
-            .build_image(build_opts, None, Some(context.into()));
+        let body = body_full(Bytes::from(context));
+        let mut build_stream = self.client.build_image(build_opts, None, Some(body));
 
         while let Some(build_result) = build_stream.next().await {
             if let Err(e) = build_result {
@@ -114,7 +116,7 @@ impl DockerBuilder {
         }
 
         // Create and start container from our image
-        let container_config = Config {
+        let container_config = ContainerCreateBody {
             image: Some(tag.to_string()),
             cmd: command.map(|v| v.iter().map(ToString::to_string).collect()),
             env: env.map(|v| v.iter().map(ToString::to_string).collect()),
@@ -128,12 +130,12 @@ impl DockerBuilder {
 
         let container_info = self
             .client
-            .create_container(None::<CreateContainerOptions<String>>, container_config)
+            .create_container(None::<CreateContainerOptions>, container_config)
             .await
             .map_err(DockerError::BollardError)?;
 
         self.client
-            .start_container(&container_info.id, None::<StartContainerOptions<String>>)
+            .start_container(&container_info.id, None::<StartContainerOptions>)
             .await
             .map_err(DockerError::BollardError)?;
 

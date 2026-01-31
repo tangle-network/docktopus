@@ -1,9 +1,11 @@
 use crate::DockerBuilder;
 use crate::error::DockerError;
-use bollard::container::LogsOptions;
 use bollard::exec::{CreateExecOptions, StartExecOptions};
-use bollard::network::CreateNetworkOptions;
-use bollard::volume::{CreateVolumeOptions, ListVolumesOptions};
+use bollard::models::{NetworkCreateRequest, VolumeCreateOptions};
+use bollard::query_parameters::{
+    CreateImageOptionsBuilder, InspectContainerOptions, ListNetworksOptions,
+    ListVolumesOptions, LogsOptionsBuilder, RemoveVolumeOptions,
+};
 use futures_util::{StreamExt, TryStreamExt};
 use std::collections::HashMap;
 use std::time::Duration;
@@ -45,10 +47,10 @@ impl DockerBuilder {
         while attempts < max_retries {
             let result = self
                 .client()
-                .create_network(CreateNetworkOptions {
+                .create_network(NetworkCreateRequest {
                     name: name.to_string(),
-                    driver: "bridge".to_string(),
-                    labels: labels.clone().unwrap_or_default(),
+                    driver: Some("bridge".to_string()),
+                    labels: labels.clone(),
                     ..Default::default()
                 })
                 .await;
@@ -139,15 +141,12 @@ impl DockerBuilder {
     /// # Ok(()) }
     /// ```
     pub async fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), DockerError> {
-        let mut pull_stream = self.client.create_image(
-            Some(bollard::image::CreateImageOptions {
-                from_image: image,
-                platform: platform.unwrap_or(""),
-                ..Default::default()
-            }),
-            None,
-            None,
-        );
+        let create_opts = CreateImageOptionsBuilder::default()
+            .from_image(image)
+            .platform(platform.unwrap_or(""))
+            .build();
+
+        let mut pull_stream = self.client.create_image(Some(create_opts), None, None);
 
         while let Some(pull_result) = pull_stream.next().await {
             if let Err(e) = pull_result {
@@ -186,7 +185,7 @@ impl DockerBuilder {
     pub async fn list_networks(&self) -> Result<Vec<String>, DockerError> {
         let networks = self
             .client()
-            .list_networks::<String>(None)
+            .list_networks(None::<ListNetworksOptions>)
             .await
             .map_err(DockerError::BollardError)?;
 
@@ -221,9 +220,9 @@ impl DockerBuilder {
     /// ```
     pub async fn create_volume(&self, name: &str) -> Result<(), DockerError> {
         self.client()
-            .create_volume(CreateVolumeOptions {
-                name,
-                driver: "local",
+            .create_volume(VolumeCreateOptions {
+                name: Some(name.to_string()),
+                driver: Some("local".to_string()),
                 ..Default::default()
             })
             .await
@@ -260,7 +259,7 @@ impl DockerBuilder {
     /// ```
     pub async fn remove_volume(&self, name: &str) -> Result<(), DockerError> {
         self.client()
-            .remove_volume(name, None)
+            .remove_volume(name, None::<RemoveVolumeOptions>)
             .await
             .map_err(DockerError::BollardError)
     }
@@ -294,7 +293,7 @@ impl DockerBuilder {
     pub async fn list_volumes(&self) -> Result<Vec<String>, DockerError> {
         let volumes = self
             .client()
-            .list_volumes(None::<ListVolumesOptions<String>>)
+            .list_volumes(None::<ListVolumesOptions>)
             .await
             .map_err(DockerError::BollardError)?;
 
@@ -340,7 +339,7 @@ impl DockerBuilder {
         while retries > 0 {
             let inspect = self
                 .client()
-                .inspect_container(container_id, None)
+                .inspect_container(container_id, None::<InspectContainerOptions>)
                 .await
                 .map_err(DockerError::BollardError)?;
 
@@ -391,17 +390,15 @@ impl DockerBuilder {
     /// ```
     pub async fn get_container_logs(&self, container_id: &str) -> Result<String, DockerError> {
         let mut output = String::new();
-        let mut stream = self.client().logs(
-            container_id,
-            Some(LogsOptions::<String> {
-                stdout: true,
-                stderr: true,
-                timestamps: true,
-                follow: false,
-                tail: "all".to_string(),
-                ..Default::default()
-            }),
-        );
+        let logs_opts = LogsOptionsBuilder::default()
+            .stdout(true)
+            .stderr(true)
+            .timestamps(true)
+            .follow(false)
+            .tail("all")
+            .build();
+
+        let mut stream = self.client().logs(container_id, Some(logs_opts));
 
         while let Some(log) = stream.try_next().await.map_err(DockerError::BollardError)? {
             output.push_str(&log.to_string());

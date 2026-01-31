@@ -1,6 +1,8 @@
 mod common;
 
-use bollard::container::ListContainersOptions;
+use bollard::query_parameters::{
+    CreateImageOptionsBuilder, InspectContainerOptions, ListContainersOptionsBuilder,
+};
 use common::{is_docker_running, with_docker_cleanup};
 use docktopus::DockerBuilder;
 use docktopus::config::{DockerCommand, DockerfileConfig};
@@ -35,17 +37,13 @@ async fn test_dockerfile_deployment() -> color_eyre::Result<()> {
 
             // Pull alpine image first
             println!("Pulling alpine image...");
+            let create_opts = CreateImageOptionsBuilder::default()
+                .from_image("alpine")
+                .tag("latest")
+                .build();
             builder
                 .client()
-                .create_image(
-                    Some(bollard::image::CreateImageOptions {
-                        from_image: "alpine",
-                        tag: "latest",
-                        ..Default::default()
-                    }),
-                    None,
-                    None,
-                )
+                .create_image(Some(create_opts), None, None)
                 .try_collect::<Vec<_>>()
                 .await?;
             println!("Image pull complete");
@@ -83,7 +81,7 @@ async fn test_dockerfile_deployment() -> color_eyre::Result<()> {
             tokio::time::sleep(Duration::from_millis(100)).await;
 
             // Verify container is running
-            let mut filters = std::collections::HashMap::new();
+            let mut filters: HashMap<String, Vec<String>> = HashMap::new();
             filters.insert("id".to_string(), vec![container_id.clone()]);
             filters.insert("label".to_string(), vec![format!("test_id={}", test_id)]);
 
@@ -91,15 +89,11 @@ async fn test_dockerfile_deployment() -> color_eyre::Result<()> {
             let mut container_running = false;
             while retries > 0 {
                 println!("Checking container state, attempt {}", 6 - retries);
-                if let Ok(containers) = builder
-                    .client()
-                    .list_containers(Some(ListContainersOptions {
-                        all: true,
-                        filters: filters.clone(),
-                        ..Default::default()
-                    }))
-                    .await
-                {
+                let list_opts = ListContainersOptionsBuilder::default()
+                    .all(true)
+                    .filters(&filters)
+                    .build();
+                if let Ok(containers) = builder.client().list_containers(Some(list_opts)).await {
                     if containers.is_empty() {
                         println!("No containers found matching filters");
                     } else {
@@ -119,7 +113,7 @@ async fn test_dockerfile_deployment() -> color_eyre::Result<()> {
                 println!("Container not found with filters. Checking container inspect...");
                 if let Ok(inspect) = builder
                     .client()
-                    .inspect_container(&container_id, None)
+                    .inspect_container(&container_id, None::<InspectContainerOptions>)
                     .await
                 {
                     println!("Container inspect result: {:?}", inspect);

@@ -1,5 +1,6 @@
 mod common;
 
+use bollard::query_parameters::InspectContainerOptions;
 use color_eyre::Result;
 use common::{is_docker_running, with_docker_cleanup};
 use docktopus::config::{SystemRequirements, parse_memory_string};
@@ -76,7 +77,7 @@ async fn test_resource_limits() -> Result<()> {
             // Verify container configuration
             let inspect = builder
                 .client()
-                .inspect_container(container_id, None)
+                .inspect_container(container_id, None::<InspectContainerOptions>)
                 .await?;
 
             if let Some(host_config) = inspect.host_config {

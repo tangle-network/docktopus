@@ -1,7 +1,8 @@
 use bollard::Docker;
-use bollard::container::ListContainersOptions;
-use bollard::network::ListNetworksOptions;
-use bollard::volume::ListVolumesOptions;
+use bollard::query_parameters::{
+    ListContainersOptionsBuilder, ListNetworksOptionsBuilder, ListVolumesOptionsBuilder,
+    RemoveContainerOptionsBuilder, RemoveVolumeOptions, StopContainerOptions,
+};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -40,14 +41,14 @@ impl DockerTestContext {
         println!("Starting cleanup for test_id: {}", self.test_id);
 
         // Clean up containers by label
-        let mut label_filters = HashMap::new();
+        let mut label_filters: HashMap<String, Vec<String>> = HashMap::new();
         label_filters.insert(
             String::from("label"),
             vec![format!("test_id={}", self.test_id)],
         );
 
         // Also match containers by name pattern
-        let mut name_filters = HashMap::new();
+        let mut name_filters: HashMap<String, Vec<String>> = HashMap::new();
         name_filters.insert(
             String::from("name"),
             vec![
@@ -59,37 +60,30 @@ impl DockerTestContext {
 
         // Try both label and name filters
         for filters in [label_filters, name_filters] {
-            if let Ok(containers) = self
-                .client
-                .list_containers(Some(ListContainersOptions {
-                    all: true,
-                    filters,
-                    ..Default::default()
-                }))
-                .await
-            {
+            let options = ListContainersOptionsBuilder::default()
+                .all(true)
+                .filters(&filters)
+                .build();
+
+            if let Ok(containers) = self.client.list_containers(Some(options)).await {
                 for container in containers {
                     if let Some(id) = container.id {
                         println!("Found container to remove: {}", id);
                         // Try to stop the container first
-                        let stop_result = self.client.stop_container(&id, None).await;
+                        let stop_result = self
+                            .client
+                            .stop_container(&id, None::<StopContainerOptions>)
+                            .await;
                         match stop_result {
                             Ok(()) => println!("Stopped container: {}", id),
                             Err(e) => println!("Error stopping container {}: {}", id, e),
                         }
 
                         // Try to remove the container
-                        match self
-                            .client
-                            .remove_container(
-                                &id,
-                                Some(bollard::container::RemoveContainerOptions {
-                                    force: true,
-                                    ..Default::default()
-                                }),
-                            )
-                            .await
-                        {
+                        let remove_opts = RemoveContainerOptionsBuilder::default()
+                            .force(true)
+                            .build();
+                        match self.client.remove_container(&id, Some(remove_opts)).await {
                             Ok(()) => println!("Removed container: {}", id),
                             Err(e) => println!("Error removing container {}: {}", id, e),
                         }
@@ -99,20 +93,18 @@ impl DockerTestContext {
         }
 
         // Clean up networks - handle both label and name patterns
-        let mut network_filters = HashMap::new();
+        let mut network_filters: HashMap<String, Vec<String>> = HashMap::new();
         // Match networks with test_id label
         network_filters.insert(
             String::from("label"),
             vec![format!("test_id={}", self.test_id)],
         );
 
-        if let Ok(networks) = self
-            .client
-            .list_networks(Some(ListNetworksOptions {
-                filters: network_filters,
-            }))
-            .await
-        {
+        let network_opts = ListNetworksOptionsBuilder::default()
+            .filters(&network_filters)
+            .build();
+
+        if let Ok(networks) = self.client.list_networks(Some(network_opts)).await {
             for network in networks {
                 if let Some(id) = network.id {
                     println!("Removing network by label: {}", id);
@@ -125,7 +117,7 @@ impl DockerTestContext {
         }
 
         // Also match networks by name pattern
-        let mut name_filters = HashMap::new();
+        let mut name_filters: HashMap<String, Vec<String>> = HashMap::new();
         name_filters.insert(
             String::from("name"),
             vec![
@@ -135,13 +127,11 @@ impl DockerTestContext {
             ],
         );
 
-        if let Ok(networks) = self
-            .client
-            .list_networks(Some(ListNetworksOptions {
-                filters: name_filters,
-            }))
-            .await
-        {
+        let name_network_opts = ListNetworksOptionsBuilder::default()
+            .filters(&name_filters)
+            .build();
+
+        if let Ok(networks) = self.client.list_networks(Some(name_network_opts)).await {
             for network in networks {
                 if let Some(id) = network.id {
                     println!("Removing network by name: {}", id);
@@ -154,15 +144,15 @@ impl DockerTestContext {
         }
 
         // Clean up volumes by label
-        let mut label_filters = HashMap::new();
+        let mut label_filters: HashMap<String, Vec<String>> = HashMap::new();
         label_filters.insert(
             String::from("label"),
             vec![format!("test_id={}", self.test_id)],
         );
 
         // Also match volumes by name pattern
-        let mut name_filters = HashMap::new();
-        name_filters.insert(
+        let mut vol_name_filters: HashMap<String, Vec<String>> = HashMap::new();
+        vol_name_filters.insert(
             String::from("name"),
             vec![
                 format!("test-volume-{}", self.test_id),
@@ -174,16 +164,20 @@ impl DockerTestContext {
         );
 
         // Try both label and name filters for volumes
-        for filters in [label_filters, name_filters] {
-            if let Ok(volumes) = self
-                .client
-                .list_volumes(Some(ListVolumesOptions { filters }))
-                .await
-            {
+        for filters in [label_filters, vol_name_filters] {
+            let vol_opts = ListVolumesOptionsBuilder::default()
+                .filters(&filters)
+                .build();
+
+            if let Ok(volumes) = self.client.list_volumes(Some(vol_opts)).await {
                 if let Some(volume_list) = volumes.volumes {
                     for volume in volume_list {
                         println!("Removing volume: {}", volume.name);
-                        match self.client.remove_volume(&volume.name, None).await {
+                        match self
+                            .client
+                            .remove_volume(&volume.name, None::<RemoveVolumeOptions>)
+                            .await
+                        {
                             Ok(()) => println!("Removed volume: {}", volume.name),
                             Err(e) => println!("Error removing volume {}: {}", volume.name, e),
                         }

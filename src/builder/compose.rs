@@ -7,9 +7,14 @@ use crate::{
     },
     error::DockerError,
 };
-use bollard::container::{Config, CreateContainerOptions, StartContainerOptions};
-use bollard::network::CreateNetworkOptions;
+use bollard::body_full;
+use bollard::models::{ContainerCreateBody, NetworkCreateRequest, VolumeCreateOptions};
+use bollard::query_parameters::{
+    BuildImageOptionsBuilder, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+    StartContainerOptions,
+};
 use bollard::service::{HealthConfig, HostConfig, Mount, PortBinding};
+use bytes::Bytes;
 use futures_util::StreamExt;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -126,9 +131,9 @@ impl DockerBuilder {
 
         // Create a network for the compose services
         self.client
-            .create_network(CreateNetworkOptions {
-                name: network_name.as_str(),
-                driver: "bridge",
+            .create_network(NetworkCreateRequest {
+                name: network_name.clone(),
+                driver: Some("bridge".to_string()),
                 ..Default::default()
             })
             .await
@@ -141,8 +146,8 @@ impl DockerBuilder {
         for (volume_name, volume_type) in &config.volumes {
             if let Volume::Named(_) = volume_type {
                 self.client
-                    .create_volume(bollard::volume::CreateVolumeOptions {
-                        name: volume_name.to_string(),
+                    .create_volume(VolumeCreateOptions {
+                        name: Some(volume_name.clone()),
                         ..Default::default()
                     })
                     .await
@@ -282,16 +287,14 @@ impl DockerBuilder {
             let context = tokio::fs::read(&tar_path).await?;
 
             // Build the image using Bollard API
-            let build_opts = bollard::image::BuildImageOptions {
-                dockerfile: build_config.dockerfile.as_deref().unwrap_or("Dockerfile"),
-                t: &tag,
-                q: false,
-                ..Default::default()
-            };
+            let build_opts = BuildImageOptionsBuilder::default()
+                .dockerfile(build_config.dockerfile.as_deref().unwrap_or("Dockerfile"))
+                .t(&tag)
+                .q(false)
+                .build();
 
-            let mut build_stream = self
-                .client
-                .build_image(build_opts, None, Some(context.into()));
+            let body = body_full(Bytes::from(context));
+            let mut build_stream = self.client.build_image(build_opts, None, Some(body));
 
             while let Some(build_result) = build_stream.next().await {
                 match build_result {
@@ -319,15 +322,12 @@ impl DockerBuilder {
 
         // Pull the image if it doesn't exist
         if self.client.inspect_image(&image).await.is_err() {
-            let mut pull_stream = self.client.create_image(
-                Some(bollard::image::CreateImageOptions {
-                    from_image: image.as_str(),
-                    platform: service.platform.as_deref().unwrap_or("linux/amd64"),
-                    ..Default::default()
-                }),
-                None,
-                None,
-            );
+            let create_opts = CreateImageOptionsBuilder::default()
+                .from_image(&image)
+                .platform(service.platform.as_deref().unwrap_or("linux/amd64"))
+                .build();
+
+            let mut pull_stream = self.client.create_image(Some(create_opts), None, None);
 
             while let Some(pull_result) = pull_stream.next().await {
                 if let Err(e) = pull_result {
@@ -337,7 +337,7 @@ impl DockerBuilder {
         }
 
         // Create container configuration
-        let mut container_config = Config {
+        let mut container_config = ContainerCreateBody {
             image: Some(image),
             cmd: service.command.clone(),
             env: Self::prepare_environment_variables(service),
@@ -355,19 +355,17 @@ impl DockerBuilder {
         }
 
         // Create and start container
+        let create_opts = CreateContainerOptionsBuilder::default()
+            .name(service_name)
+            .build();
+
         let container = self
             .client
-            .create_container(
-                Some(CreateContainerOptions {
-                    name: service_name,
-                    platform: None,
-                }),
-                container_config,
-            )
+            .create_container(Some(create_opts), container_config)
             .await?;
 
         self.client
-            .start_container(&container.id, None::<StartContainerOptions<String>>)
+            .start_container(&container.id, None::<StartContainerOptions>)
             .await?;
 
         Ok(container.id)

@@ -1,6 +1,6 @@
 mod common;
 
-use bollard::container::ListContainersOptions;
+use bollard::query_parameters::ListContainersOptionsBuilder;
 use color_eyre::Result;
 use common::{is_docker_running, with_docker_cleanup};
 use docktopus::{BuildConfig, ComposeConfig, DockerBuilder, Service};
@@ -62,22 +62,18 @@ async fn test_compose_deployment() -> Result<()> {
 
             // Verify containers are running
             for (_, container_id) in container_ids {
-                let mut filters = HashMap::new();
+                let mut filters: HashMap<String, Vec<String>> = HashMap::new();
                 filters.insert("id".to_string(), vec![container_id.clone()]);
                 filters.insert("label".to_string(), vec![format!("test_id={}", test_id)]);
 
                 let mut retries = 5;
                 let mut containers_found = false;
                 while retries > 0 {
-                    match builder
-                        .client()
-                        .list_containers(Some(ListContainersOptions {
-                            all: true,
-                            filters: filters.clone(),
-                            ..Default::default()
-                        }))
-                        .await
-                    {
+                    let list_opts = ListContainersOptionsBuilder::default()
+                        .all(true)
+                        .filters(&filters)
+                        .build();
+                    match builder.client().list_containers(Some(list_opts)).await {
                         Ok(containers) => {
                             if containers.len() == 1
                                 && containers[0].id.as_ref().unwrap() == &container_id
