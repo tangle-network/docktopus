@@ -3,8 +3,8 @@ use crate::error::DockerError;
 use bollard::exec::{CreateExecOptions, StartExecOptions};
 use bollard::models::{NetworkCreateRequest, VolumeCreateOptions};
 use bollard::query_parameters::{
-    CreateImageOptionsBuilder, InspectContainerOptions, ListNetworksOptions,
-    ListVolumesOptions, LogsOptionsBuilder, RemoveVolumeOptions,
+    CreateImageOptionsBuilder, InspectContainerOptions, ListNetworksOptions, ListVolumesOptions,
+    LogsOptionsBuilder, RemoveVolumeOptions,
 };
 use futures_util::{StreamExt, TryStreamExt};
 use std::collections::HashMap;

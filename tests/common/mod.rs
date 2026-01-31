@@ -80,9 +80,8 @@ impl DockerTestContext {
                         }
 
                         // Try to remove the container
-                        let remove_opts = RemoveContainerOptionsBuilder::default()
-                            .force(true)
-                            .build();
+                        let remove_opts =
+                            RemoveContainerOptionsBuilder::default().force(true).build();
                         match self.client.remove_container(&id, Some(remove_opts)).await {
                             Ok(()) => println!("Removed container: {}", id),
                             Err(e) => println!("Error removing container {}: {}", id, e),
