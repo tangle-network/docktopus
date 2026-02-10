@@ -1,5 +1,6 @@
 mod common;
 
+use bollard::query_parameters::InspectContainerOptions;
 use color_eyre::Result;
 use common::{is_docker_running, with_docker_cleanup};
 use docktopus::config::{SystemRequirements, parse_memory_string};
@@ -21,7 +22,7 @@ async fn test_resource_limits() -> Result<()> {
             let network_name = format!("test-network-{}", test_id);
 
             let mut network_labels = HashMap::new();
-            network_labels.insert("test_id".to_string(), test_id.to_string());
+            network_labels.insert("test_id".to_string(), test_id.clone());
 
             // Create network with retry mechanism
             builder
@@ -38,7 +39,7 @@ async fn test_resource_limits() -> Result<()> {
             // Create a service with resource limits
             let mut services = HashMap::new();
             let mut labels = HashMap::new();
-            labels.insert("test_id".to_string(), test_id.to_string());
+            labels.insert("test_id".to_string(), test_id.clone());
 
             services.insert(
                 service_name.clone(),
@@ -76,7 +77,7 @@ async fn test_resource_limits() -> Result<()> {
             // Verify container configuration
             let inspect = builder
                 .client()
-                .inspect_container(container_id, None)
+                .inspect_container(container_id, None::<InspectContainerOptions>)
                 .await?;
 
             if let Some(host_config) = inspect.host_config {

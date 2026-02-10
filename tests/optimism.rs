@@ -1,5 +1,6 @@
 mod common;
 
+use bollard::query_parameters::ListContainersOptionsBuilder;
 use color_eyre::Result;
 use common::with_docker_cleanup;
 use docktopus::parser::ComposeParser;
@@ -243,6 +244,7 @@ impl OptimismTestContext {
 }
 
 #[tokio::test]
+#[ignore = "depends on simple-optimism-node submodule with EOL ubuntu:23.10 base image"]
 async fn test_optimism_node_deployment() -> Result<()> {
     with_docker_cleanup(|test_id| {
         Box::pin(async move {
@@ -262,19 +264,14 @@ async fn test_optimism_node_deployment() -> Result<()> {
                 let mut retries = 5;
                 let mut container_running = false;
                 while retries > 0 {
-                    if let Ok(containers) = ctx
-                        .builder
-                        .client()
-                        .list_containers(Some(bollard::container::ListContainersOptions {
-                            all: true,
-                            filters: {
-                                let mut filters = HashMap::new();
-                                filters.insert("id".to_string(), vec![container_id.clone()]);
-                                filters
-                            },
-                            ..Default::default()
-                        }))
-                        .await
+                    let mut filters: HashMap<String, Vec<String>> = HashMap::new();
+                    filters.insert("id".to_string(), vec![container_id.clone()]);
+                    let list_opts = ListContainersOptionsBuilder::default()
+                        .all(true)
+                        .filters(&filters)
+                        .build();
+                    if let Ok(containers) =
+                        ctx.builder.client().list_containers(Some(list_opts)).await
                     {
                         if !containers.is_empty() {
                             container_running = true;

@@ -14,7 +14,7 @@ async fn test_network_management() -> color_eyre::Result<()> {
             let network_name = format!("test-network-{}", Uuid::new_v4());
 
             let mut network_labels = HashMap::new();
-            network_labels.insert("test_id".to_string(), test_id.to_string());
+            network_labels.insert("test_id".to_string(), test_id.clone());
 
             // Create network with retry
             builder

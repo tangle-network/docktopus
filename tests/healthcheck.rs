@@ -1,5 +1,6 @@
 mod common;
 
+use bollard::query_parameters::{CreateImageOptionsBuilder, InspectContainerOptions};
 use color_eyre::Result;
 use common::{is_docker_running, with_docker_cleanup};
 use docktopus::config::{HealthCheck, Method};
@@ -20,7 +21,7 @@ async fn test_healthcheck() -> Result<()> {
             let network_name = format!("test-network-{}", test_id);
 
             let mut network_labels = HashMap::new();
-            network_labels.insert("test_id".to_string(), test_id.to_string());
+            network_labels.insert("test_id".to_string(), test_id.clone());
 
             // Create network with retry mechanism
             builder
@@ -35,24 +36,20 @@ async fn test_healthcheck() -> Result<()> {
             let service_name = format!("healthy-service-{}", test_id);
 
             // Pull nginx image first
+            let create_opts = CreateImageOptionsBuilder::default()
+                .from_image("nginx")
+                .tag("latest")
+                .build();
             builder
                 .client()
-                .create_image(
-                    Some(bollard::image::CreateImageOptions {
-                        from_image: "nginx",
-                        tag: "latest",
-                        ..Default::default()
-                    }),
-                    None,
-                    None,
-                )
+                .create_image(Some(create_opts), None, None)
                 .try_collect::<Vec<_>>()
                 .await?;
 
             // Create a service with healthcheck
             let mut services = HashMap::new();
             let mut labels = HashMap::new();
-            labels.insert("test_id".to_string(), test_id.to_string());
+            labels.insert("test_id".to_string(), test_id.clone());
 
             services.insert(
                 service_name.clone(),
@@ -89,7 +86,7 @@ async fn test_healthcheck() -> Result<()> {
             // Verify healthcheck configuration
             let inspect = builder
                 .client()
-                .inspect_container(container_id, None)
+                .inspect_container(container_id, None::<InspectContainerOptions>)
                 .await?;
 
             if let Some(config) = inspect.config {

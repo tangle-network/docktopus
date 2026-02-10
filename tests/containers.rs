@@ -1,7 +1,9 @@
 mod common;
 
-use bollard::container::{
-    Config, CreateContainerOptions, InspectContainerOptions, ListContainersOptions,
+use bollard::models::ContainerCreateBody;
+use bollard::query_parameters::{
+    CreateContainerOptionsBuilder, CreateImageOptionsBuilder, InspectContainerOptions,
+    ListContainersOptionsBuilder, StartContainerOptions,
 };
 use color_eyre::Result;
 use common::with_docker_cleanup;
@@ -22,40 +24,36 @@ async fn test_container_management() -> Result<()> {
 
             // Pull image first to avoid potential "No such image" errors
             println!("Pulling alpine image...");
+            let create_opts = CreateImageOptionsBuilder::default()
+                .from_image("alpine")
+                .tag("latest")
+                .build();
             builder
                 .client()
-                .create_image(
-                    Some(bollard::image::CreateImageOptions {
-                        from_image: "alpine",
-                        tag: "latest",
-                        ..Default::default()
-                    }),
-                    None,
-                    None,
-                )
+                .create_image(Some(create_opts), None, None)
                 .try_collect::<Vec<_>>()
                 .await?;
             println!("Image pull complete");
 
             // Create container first
             let mut labels = HashMap::new();
-            labels.insert("test_id", &*test_id);
+            labels.insert("test_id".to_string(), test_id.clone());
+
+            let create_container_opts = CreateContainerOptionsBuilder::default()
+                .name(&container_name)
+                .build();
+
+            let container_config = ContainerCreateBody {
+                image: Some("alpine:latest".to_string()),
+                cmd: Some(vec!["sleep".to_string(), "30".to_string()]), // Longer sleep to avoid timing issues
+                labels: Some(labels),
+                tty: Some(true),
+                ..Default::default()
+            };
 
             let container = builder
                 .client()
-                .create_container(
-                    Some(CreateContainerOptions {
-                        name: container_name.clone(),
-                        platform: None,
-                    }),
-                    Config {
-                        image: Some("alpine:latest"),
-                        cmd: Some(vec!["sleep", "30"]), // Longer sleep to avoid timing issues
-                        labels: Some(labels),
-                        tty: Some(true),
-                        ..Default::default()
-                    },
-                )
+                .create_container(Some(create_container_opts), container_config)
                 .await?;
             println!("Container created with ID: {}", container.id);
 
@@ -79,10 +77,7 @@ async fn test_container_management() -> Result<()> {
             while start_retries > 0 && !start_success {
                 match builder
                     .client()
-                    .start_container(
-                        &container.id,
-                        None::<bollard::container::StartContainerOptions<String>>,
-                    )
+                    .start_container(&container.id, None::<StartContainerOptions>)
                     .await
                 {
                     Ok(()) => {
@@ -123,23 +118,19 @@ async fn test_container_management() -> Result<()> {
             }
 
             // Verify container is running with more retries
-            let mut filters = HashMap::new();
-            filters.insert("id".to_string(), vec![container.id.as_str().to_string()]);
+            let mut filters: HashMap<String, Vec<String>> = HashMap::new();
+            filters.insert("id".to_string(), vec![container.id.clone()]);
             filters.insert("label".to_string(), vec![format!("test_id={}", test_id)]);
 
             let mut retries = 10; // Increased retries
             let mut container_running = false;
             while retries > 0 {
                 println!("Checking container running state, attempt {}", 11 - retries);
-                match builder
-                    .client()
-                    .list_containers(Some(ListContainersOptions {
-                        all: true, // Check all containers, not just running ones
-                        filters: filters.clone(),
-                        ..Default::default()
-                    }))
-                    .await
-                {
+                let list_opts = ListContainersOptionsBuilder::default()
+                    .all(true)
+                    .filters(&filters)
+                    .build();
+                match builder.client().list_containers(Some(list_opts)).await {
                     Ok(containers) => {
                         if !containers.is_empty() {
                             container_running = true;
