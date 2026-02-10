@@ -19,7 +19,7 @@ async fn test_compose_deployment() -> Result<()> {
             let network_name = format!("test-network-{}", test_id);
 
             let mut labels = HashMap::new();
-            labels.insert("test_id".to_string(), test_id.to_string());
+            labels.insert("test_id".to_string(), test_id.clone());
 
             // Create network with retry mechanism
             builder
@@ -32,7 +32,7 @@ async fn test_compose_deployment() -> Result<()> {
             env.insert("TEST".to_string(), "value".to_string());
 
             let mut labels = HashMap::new();
-            labels.insert("test_id".to_string(), test_id.to_string());
+            labels.insert("test_id".to_string(), test_id.clone());
 
             let service_name = format!("test-service-{}", test_id);
             services.insert(

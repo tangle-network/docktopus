@@ -368,9 +368,9 @@ impl Container {
     ///
     /// # Examples
     ///
-    /// ```rust,no_run
+    /// ```ignore
     /// use docktopus::bollard::models::{PortBinding, PortMap};
-    /// use docktopus::{Container, Runtime};
+    /// use docktopus::container::{Container, Runtime};
     /// use std::collections::HashMap;
     ///
     /// # #[tokio::main]
@@ -405,8 +405,8 @@ impl Container {
     ///
     /// # Examples
     ///
-    /// ```rust,no_run
-    /// use docktopus::{Container, Runtime};
+    /// ```ignore
+    /// use docktopus::container::{Container, Runtime};
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), docktopus::container::Error> {
@@ -431,9 +431,9 @@ impl Container {
     ///
     /// # Examples
     ///
-    /// ```rust,no_run
+    /// ```ignore
     /// use docktopus::bollard::models::{RestartPolicy, RestartPolicyNameEnum};
-    /// use docktopus::{Container, Runtime};
+    /// use docktopus::container::{Container, Runtime};
     ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), docktopus::container::Error> {

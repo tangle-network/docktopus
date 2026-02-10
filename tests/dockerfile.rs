@@ -23,7 +23,7 @@ async fn test_dockerfile_deployment() -> color_eyre::Result<()> {
             let network_name = format!("test-network-{}", test_id);
 
             let mut network_labels = HashMap::new();
-            network_labels.insert("test_id".to_string(), test_id.to_string());
+            network_labels.insert("test_id".to_string(), test_id.clone());
 
             // Create network with retry mechanism
             builder
@@ -58,7 +58,7 @@ async fn test_dockerfile_deployment() -> color_eyre::Result<()> {
                     DockerCommand::Label {
                         labels: {
                             let mut labels = HashMap::new();
-                            labels.insert("test_id".to_string(), test_id.to_string());
+                            labels.insert("test_id".to_string(), test_id.clone());
                             labels
                         },
                     },

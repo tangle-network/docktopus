@@ -21,7 +21,7 @@ async fn test_healthcheck() -> Result<()> {
             let network_name = format!("test-network-{}", test_id);
 
             let mut network_labels = HashMap::new();
-            network_labels.insert("test_id".to_string(), test_id.to_string());
+            network_labels.insert("test_id".to_string(), test_id.clone());
 
             // Create network with retry mechanism
             builder
@@ -49,7 +49,7 @@ async fn test_healthcheck() -> Result<()> {
             // Create a service with healthcheck
             let mut services = HashMap::new();
             let mut labels = HashMap::new();
-            labels.insert("test_id".to_string(), test_id.to_string());
+            labels.insert("test_id".to_string(), test_id.clone());
 
             services.insert(
                 service_name.clone(),
