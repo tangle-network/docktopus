@@ -244,6 +244,7 @@ impl OptimismTestContext {
 }
 
 #[tokio::test]
+#[ignore = "depends on simple-optimism-node submodule with EOL ubuntu:23.10 base image"]
 async fn test_optimism_node_deployment() -> Result<()> {
     with_docker_cleanup(|test_id| {
         Box::pin(async move {
