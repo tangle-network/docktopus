@@ -16,8 +16,7 @@ pub fn is_docker_running() -> bool {
     Command::new("docker")
         .arg("info")
         .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false)
+        .is_ok_and(|output| output.status.success())
 }
 
 pub struct DockerTestContext {
