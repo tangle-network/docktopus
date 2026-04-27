@@ -627,9 +627,8 @@ impl Container {
             if let Some(val) = override_config.network_disabled {
                 config.network_disabled = Some(val);
             }
-            if let Some(val) = &override_config.mac_address {
-                config.mac_address = Some(val.clone());
-            }
+            // mac_address was removed from ContainerCreateBody in bollard 0.20
+            // (deprecated in Docker API)
             if let Some(val) = &override_config.on_build {
                 config.on_build = Some(val.clone());
             }
