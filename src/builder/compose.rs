@@ -8,7 +8,7 @@ use crate::{
     error::DockerError,
 };
 use bollard::body_full;
-use bollard::models::{ContainerCreateBody, NetworkCreateRequest, VolumeCreateOptions};
+use bollard::models::{ContainerCreateBody, NetworkCreateRequest, VolumeCreateRequest};
 use bollard::query_parameters::{
     BuildImageOptionsBuilder, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
     StartContainerOptions,
@@ -146,7 +146,7 @@ impl DockerBuilder {
         for (volume_name, volume_type) in &config.volumes {
             if let Volume::Named(_) = volume_type {
                 self.client
-                    .create_volume(VolumeCreateOptions {
+                    .create_volume(VolumeCreateRequest {
                         name: Some(volume_name.clone()),
                         ..Default::default()
                     })
@@ -299,10 +299,10 @@ impl DockerBuilder {
             while let Some(build_result) = build_stream.next().await {
                 match build_result {
                     Ok(output) => {
-                        if let Some(error) = output.error {
+                        if let Some(error_detail) = output.error_detail {
                             return Err(DockerError::ValidationError(format!(
                                 "Docker build error: {}",
-                                error
+                                error_detail.message.unwrap_or_default()
                             )));
                         }
                         if let Some(stream) = output.stream {

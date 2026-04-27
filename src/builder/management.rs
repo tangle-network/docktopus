@@ -1,7 +1,7 @@
 use crate::DockerBuilder;
 use crate::error::DockerError;
 use bollard::exec::{CreateExecOptions, StartExecOptions};
-use bollard::models::{NetworkCreateRequest, VolumeCreateOptions};
+use bollard::models::{NetworkCreateRequest, VolumeCreateRequest};
 use bollard::query_parameters::{
     CreateImageOptionsBuilder, InspectContainerOptions, ListNetworksOptions, ListVolumesOptions,
     LogsOptionsBuilder, RemoveVolumeOptions,
@@ -220,7 +220,7 @@ impl DockerBuilder {
     /// ```
     pub async fn create_volume(&self, name: &str) -> Result<(), DockerError> {
         self.client()
-            .create_volume(VolumeCreateOptions {
+            .create_volume(VolumeCreateRequest {
                 name: Some(name.to_string()),
                 driver: Some("local".to_string()),
                 ..Default::default()
