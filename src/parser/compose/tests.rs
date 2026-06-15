@@ -392,6 +392,7 @@ fn test_compose_missing_version() {
     "#;
 
     let config: ComposeConfig = serde_yaml::from_str(yaml).unwrap();
+    assert_eq!(config.version, "3");
     let service = config.services.get("reth").unwrap();
 
     assert!(service.command.is_some());
