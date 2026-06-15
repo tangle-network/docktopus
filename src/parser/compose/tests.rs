@@ -364,3 +364,55 @@ services:
         panic!("app1 environment should be Some");
     }
 }
+
+#[test]
+fn test_compose_missing_version() {
+    let yaml = r#"
+        services:
+          reth:
+            image: ghcr.io/paradigmxyz/reth:latest
+            ports:
+              - "8545:8545"
+              - "9000:9000"
+            command: [
+              "/reth/target/release/reth",
+              "node",
+              "--metrics",
+              "reth:9000",
+              "--debug.tip",
+              "${RETH_TIP:-0x7d5a4369273c723454ac137f48a4f142b097aa2779464e6505f1b1c5e37b5382}",
+              "--log.directory",
+              "$HOME"
+            ]
+            volumes:
+              - source: ./data
+                target: /data
+                type: bind
+                read_only: false
+    "#;
+
+    let config: ComposeConfig = serde_yaml::from_str(yaml).unwrap();
+    let service = config.services.get("reth").unwrap();
+
+    assert!(service.command.is_some());
+    let command = service.command.as_ref().unwrap();
+    assert_eq!(command.len(), 8);
+    assert_eq!(command[0], "/reth/target/release/reth");
+    assert_eq!(command[1], "node");
+
+    let volumes = service.volumes.as_ref().unwrap();
+    assert_eq!(volumes.len(), 1);
+
+    match &volumes[0] {
+        Volume::Bind {
+            source,
+            target,
+            read_only,
+        } => {
+            assert_eq!(source, "./data");
+            assert_eq!(target, "/data");
+            assert!(!read_only);
+        }
+        _ => panic!("Expected bind mount"),
+    }
+}
