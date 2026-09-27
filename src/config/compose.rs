@@ -67,12 +67,17 @@ pub struct BuildConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComposeConfig {
     /// Docker Compose file version
+    #[serde(default = "version_3")]
     pub version: String,
     /// Map of service name to service configuration
     pub services: HashMap<String, Service>,
     /// Map of volume name to volume configuration
     #[serde(default)]
     pub volumes: HashMap<String, Volume>,
+}
+
+fn version_3() -> String {
+    "3".to_string()
 }
 
 impl Default for ComposeConfig {
