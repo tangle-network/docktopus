@@ -3,7 +3,7 @@
 use bollard::Docker;
 use bollard::models::{
     ContainerConfig, ContainerCreateBody, ContainerCreateResponse, ContainerInspectResponse,
-    HostConfig, MountPointTypeEnum, PortMap, RestartPolicy,
+    HostConfig, PortMap, RestartPolicy,
 };
 use bollard::query_parameters::{
     CreateContainerOptionsBuilder, InspectContainerOptions, ListContainersOptionsBuilder,
@@ -183,7 +183,7 @@ impl Container {
             mounts
                 .into_iter()
                 .filter_map(|mount| {
-                    if !matches!(mount.typ, Some(MountPointTypeEnum::BIND)) {
+                    if mount.typ.as_deref() != Some("bind") {
                         return None;
                     }
                     let source = mount.source?;

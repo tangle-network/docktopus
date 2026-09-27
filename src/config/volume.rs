@@ -1,5 +1,5 @@
 #[cfg(feature = "deploy")]
-use bollard::service::{Mount, MountTypeEnum};
+use bollard::service::{Mount, MountType};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -179,7 +179,7 @@ impl From<Volume> for Mount {
                 Mount {
                     target: Some(parts[1].to_string()),
                     source: Some(parts[0].to_string()),
-                    typ: Some(MountTypeEnum::VOLUME),
+                    typ: Some(MountType::VOLUME),
                     ..Default::default()
                 }
             }
@@ -190,13 +190,13 @@ impl From<Volume> for Mount {
             } => Mount {
                 target: Some(target),
                 source: Some(source),
-                typ: Some(MountTypeEnum::BIND),
+                typ: Some(MountType::BIND),
                 read_only: Some(read_only),
                 ..Default::default()
             },
             Volume::Config { name, .. } => Mount {
                 source: Some(name),
-                typ: Some(MountTypeEnum::VOLUME),
+                typ: Some(MountType::VOLUME),
                 ..Default::default()
             },
         }
