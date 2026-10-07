@@ -18,14 +18,15 @@ env:
 jobs:
   formatting:
     name: Rustfmt
-    runs-on: [self-hosted, ci-public]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rs/toolchain@v1
         with:
+          toolchain: stable
           components: rustfmt
 
       - name: Check Formatting
@@ -34,15 +35,15 @@ jobs:
   linting:
     timeout-minutes: 120
     name: Clippy
-    runs-on: [self-hosted, ci-public]
+    runs-on: ubuntu-latest
     steps:
       - name: checkout code
         uses: actions/checkout@v7
 
       - name: install rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rs/toolchain@v1
         with:
-          components: clippy
+          toolchain: stable
 
       - uses: swatinem/rust-cache@v2
         with:
@@ -54,7 +55,7 @@ jobs:
   testing:
     timeout-minutes: 30
     name: Tests
-    runs-on: [self-hosted, ci-public]
+    runs-on: ubuntu-latest
     steps:
       - name: checkout code
         uses: actions/checkout@v7
@@ -62,7 +63,9 @@ jobs:
           submodules: "recursive"
 
       - name: install rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: stable
 
       - uses: swatinem/rust-cache@v2
         with:
