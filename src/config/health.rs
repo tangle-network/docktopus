@@ -128,34 +128,108 @@ impl HealthCheck {
 mod tests {
     use super::*;
     use std::time::Duration;
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+    use tokio::net::TcpListener;
+    use tokio::task::JoinHandle;
+    use tokio::time::timeout;
+
+    async fn serve_statuses(statuses: &'static [u16]) -> (String, JoinHandle<()>) {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let endpoint = format!("http://{}/health", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            timeout(Duration::from_secs(5), async move {
+                for status in statuses {
+                    let (stream, _) = listener.accept().await.unwrap();
+                    let mut stream = BufReader::new(stream);
+                    let mut line = String::new();
+                    stream.read_line(&mut line).await.unwrap();
+                    assert_eq!(line, "GET /health HTTP/1.1\r\n");
+
+                    loop {
+                        line.clear();
+                        assert_ne!(stream.read_line(&mut line).await.unwrap(), 0);
+                        if line == "\r\n" {
+                            break;
+                        }
+                    }
+
+                    let response = format!(
+                        "HTTP/1.1 {status} Test\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                    );
+                    stream
+                        .get_mut()
+                        .write_all(response.as_bytes())
+                        .await
+                        .unwrap();
+                    stream.get_mut().shutdown().await.unwrap();
+                }
+            })
+            .await
+            .expect("health check did not send all expected requests");
+        });
+        (endpoint, server)
+    }
 
     #[tokio::test]
     async fn test_health_check_success() {
+        let (endpoint, server) = serve_statuses(&[200]).await;
         let health_check = HealthCheck {
-            endpoint: "https://httpbin.org/status/200".to_string(),
+            endpoint,
             method: Method::Get,
             expected_status: 200,
             body: None,
-            interval: Duration::from_secs(1),
-            timeout: Duration::from_secs(5),
+            interval: Duration::from_millis(10),
+            timeout: Duration::from_secs(1),
             retries: 3,
         };
 
-        assert!(health_check.check().await.is_ok());
+        let result = health_check.check().await;
+        assert!(result.is_ok(), "{result:?}");
+        server.await.unwrap();
     }
 
     #[tokio::test]
     async fn test_health_check_failure() {
+        let (endpoint, server) = serve_statuses(&[500, 500]).await;
         let health_check = HealthCheck {
-            endpoint: "https://httpbin.org/status/500".to_string(),
+            endpoint,
             method: Method::Get,
             expected_status: 200,
             body: None,
-            interval: Duration::from_secs(1),
-            timeout: Duration::from_secs(5),
+            interval: Duration::from_millis(10),
+            timeout: Duration::from_secs(1),
             retries: 2,
         };
 
-        assert!(health_check.check().await.is_err());
+        let result = health_check.check().await;
+        assert!(
+            matches!(
+                result,
+                Err(HealthCheckError::UnexpectedStatus {
+                    expected: 200,
+                    actual: 500
+                })
+            ),
+            "{result:?}"
+        );
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_health_check_recovers_after_retry() {
+        let (endpoint, server) = serve_statuses(&[503, 200]).await;
+        let health_check = HealthCheck {
+            endpoint,
+            method: Method::Get,
+            expected_status: 200,
+            body: None,
+            interval: Duration::from_millis(10),
+            timeout: Duration::from_secs(1),
+            retries: 3,
+        };
+
+        let result = health_check.check().await;
+        assert!(result.is_ok(), "{result:?}");
+        server.await.unwrap();
     }
 }
