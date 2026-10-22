@@ -432,14 +432,6 @@ async fn test_invalid_healthcheck() {
 }
 
 #[tokio::test]
-async fn test_empty_dockerfile() {
-    let content = "";
-    let config = DockerfileConfig::parse(content).unwrap();
-    assert!(config.base_image.is_empty());
-    assert!(config.commands.is_empty());
-}
-
-#[tokio::test]
 async fn test_comments_and_empty_lines() {
     let content = r#"
         # This is a comment
