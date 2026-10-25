@@ -252,6 +252,16 @@ This project is licensed under either of
 
 at your discretion.
 
+## Local qualification
+
+Automatic pull-request and main-push CI is retired. Before merging source changes, merge the current default branch and run the retired formatting, Clippy, build/test and documentation checks through the maintained admitted gate:
+
+```bash
+beelink-gate auto https://github.com/tangle-network/docktopus.git <full-sha> -- bash -lc 'cargo fmt -- --check && cargo clippy --tests --examples -- -D warnings && cargo build --tests && cargo nextest run --profile ci && cargo test --doc'
+```
+
+The admitted host needs Rust with rustfmt/Clippy, cargo-nextest, the repository submodule fixtures and Docker for container integration checks. Select any fixture preparation through its maintained owner before running Docker checks; a source-only check does not prove container deployment. Workflow/documentation-only changes use YAML, actionlint and content/exact-diff checks. Qualification does not publish a crate or authorize production container changes.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. When contributing:
