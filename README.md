@@ -4,7 +4,7 @@
 
 <h1 align="center">Docktopus</h1>
 
-<p align="center"><em>A high-performance Rust library for programmatic container orchestration on the <a href="https://tangle.tools/overview/">Tangle Network</a> stack.</em></p>
+<p align="center"><em>A high-performance Rust library for programmatic container orchestration on the <a href="https://tangle.tools/">Tangle Network</a> stack.</em></p>
 
 <p align="center">
   <a href="https://github.com/tangle-network/docktopus/releases"><img src="https://img.shields.io/github/v/release/tangle-network/docktopus?sort=semver" alt="Latest Release"></a>
