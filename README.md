@@ -1,5 +1,18 @@
 # Docktopus
 
+![Tangle Network Banner](https://raw.githubusercontent.com/tangle-network/tangle/refs/heads/main/assets/Tangle%20%20Banner.png)
+
+<h1 align="center">Docktopus</h1>
+
+<p align="center"><em>A high-performance Rust library for programmatic container orchestration on the <a href="https://tangle.tools/overview/">Tangle Network</a> stack.</em></p>
+
+<p align="center">
+  <a href="https://github.com/tangle-network/docktopus/releases"><img src="https://img.shields.io/github/v/release/tangle-network/docktopus?sort=semver" alt="Latest Release"></a>
+  <a href="https://github.com/tangle-network/docktopus/blob/main/LICENSE-APACHE"><img src="https://img.shields.io/crates/l/docktopus" alt="License"></a>
+  <a href="https://discord.com/invite/cv8EfJu3Tn"><img src="https://img.shields.io/discord/833784453251596298?label=Discord" alt="Discord"></a>
+  <a href="https://t.me/tanglenet"><img src="https://img.shields.io/endpoint?color=neon&url=https%3A%2F%2Ftg.sumanjay.workers.dev%2Ftanglenet" alt="Telegram"></a>
+</p>
+
 A high-performance Rust library for programmatic container orchestration, offering type-safe Docker and Docker Compose
 operations with advanced deployment capabilities.
 
@@ -240,6 +253,15 @@ This library is in active development. Current focus areas:
 - Additional Docker Compose features
 - Improved resource management
 - Better developer ergonomics
+
+## Support
+
+For support or inquiries:
+- **Issues:** Report bugs or request features via GitHub Issues.
+- **Discussions:** Engage with the community in GitHub Discussions.
+- For real-time assistance and announcements:
+    - Join our [Discord server](https://discord.com/invite/cv8EfJu3Tn)
+    - Join our [Telegram channel](https://t.me/tanglenet)
 
 ## License
 
